@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SkyTask Reward</title>
+    
+    <!-- Telegram & Firebase SDKs -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Icons & Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <!-- 
+       👇 MONETAG SDK (NAKA) 
+       Zone ID: 10544727
+    -->
+    <script src='//libtl.com/sdk.js' data-zone='10544727' data-sdk='show_10544727'></script>
+
+    <style>
+        :root {
+            --primary: #00BFFF; /* Deep Sky Blue */
+            --secondary: #87CEEB; /* Sky Blue */
+            --dark: #001f3f;
+            --glass: rgba(255, 255, 255, 0.15);
+            --gold: #FFD700;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #87CEEB 100%);
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header Section --- */
+        header {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            animation: slideDown 0.5s ease;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-profile img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid var(--secondary);
+        }
+        .balance-badge {
+            background: rgba(0,0,0,0.4);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: var(--gold);
+            border: 1px solid var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* --- Main Content Area --- */
+        #content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 100px; /* Space for menu */
+            position: relative;
+        }
+
+        /* Tab Sections */
+        .tab-section {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        .tab-section.active {
+            display: block;
+        }
+
+        /* Cards */
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            text-align: center;
+        }
+
+        /* WATCH TAB Styles */
+        .ad-circle {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, var(--primary), var(--dark));
+            border-radius: 50%;
+            margin: 30px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            color: white;
+            box-shadow: 0 0 30px var(--primary);
+            cursor: pointer;
+            transition: transform 0.2s;
+            animation: pulse 2s infinite;
+        }
+        .ad-circle:active { transform: scale(0.95); }
+
+        /* INVITE TAB Styles */
+        .invite-box {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            word-break: break-all;
+            margin: 15px 0;
+            font-family: monospace;
+            border: 1px dashed var(--secondary);
+        }
+
+        /* WALLET TAB Styles */
+        input {
+            width: 90%;
+            padding: 12px;
+            margin: 10px 0;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--secondary);
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+        }
+        .btn-action {
+            background: linear-gradient(90deg, #00C6FF, #0072FF);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        /* --- Bottom Navigation Menu --- */
+        .bottom-nav {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            background: rgba(22, 33, 62, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 25px;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
+        }
+
+        .nav-item {
+            color: #8899a6;
+            text-align: center;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+            position: relative;
+        }
+        .nav-item i {
+            font-size: 20px;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .nav-item.active {
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(0, 191, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 191, 255, 0); } }
+
+        /* Loading */
+        #loading { position: fixed; inset: 0; background: var(--dark); z-index: 999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loading">
+        <div class="spinner"></div>
+        <p style="margin-top: 15px; color: var(--secondary);">TopSkyTask Loading...</p>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="user-profile">
+            <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="User">
+            <div style="line-height: 1.2;">
+                <div style="font-size: 14px; color: #aaa;">Welcome,</div>
+                <div id="username" style="font-weight: bold;">Guest</div>
+            </div>
+        </div>
+        <div class="balance-badge">
+            <i class="fas fa-coins"></i> <span id="balance">0</span>
+        </div>
+    </header>
+
+    <!-- Content Area -->
+    <div id="content">
+
+        <!-- 1. WATCH TAB -->
+        <div id="tab-watch" class="tab-section active">
+            <div class="glass-card">
+                <h2>Watch & Earn</h2>
+                <p style="color: #ddd;">Kalli talla don samun 200 Coins!</p>
+                
+                <div class="ad-circle" onclick="playAd()">
+                    <i class="fas fa-play"></i>
+                </div>
+                
+                <p style="font-size: 12px; color: var(--secondary);">High Paying Ads (Monetag)</p>
+            </div>
+            
+            <div class="glass-card" style="text-align: left;">
+                <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                <p style="font-size: 13px; color: #aaa;">System started... No recent logs.</p>
+            </div>
+        </div>
+
+        <!-- 2. INVITE TAB -->
+        <div id="tab-invite" class="tab-section">
+            <div class="glass-card">
+                <i class="fas fa-users" style="font-size: 50px; color: var(--secondary); margin-bottom: 10px;"></i>
+                <h2>Invite Friends</h2>
+                <p>Samu <b>100 Coins</b> ga kowane aboki da ka gayyata!</p>
+                
+                <div class="invite-box" id="inviteLink">Loading link...</div>
+                
+                <button class="btn-action" onclick="copyInvite()">Copy Link <i class="fas fa-copy"></i></button>
+            </div>
+            
+            <div class="glass-card">
+                <h3>Your Team</h3>
+                <div style="font-size: 40px; font-weight: bold;" id="refCount">0</div>
+                <p style="font-size: 12px;">Total Referrals</p>
+            </div>
+        </div>
+
+        <!-- 3. WALLET TAB -->
+        <div id="tab-wallet" class="tab-section">
+            <div class="glass-card">
+                <i class="fas fa-wallet" style="font-size: 50px; color: var(--gold); margin-bottom: 10px;"></i>
+                <h2>Wallet</h2>
+                <h1 style="color: var(--gold);"><span id="wallet-bal">0</span> <small style="font-size: 14px;">Coins</small></h1>
+                <p style="font-size: 12px;">≈ <span id="usdt-val">0.00</span> USDT</p>
+            </div>
+
+            <div class="glass-card">
+                <h3>Withdraw</h3>
+                <p style="font-size: 12px; color: #aaa;">Minimum: 5,000 Coins</p>
+                <input type="text" placeholder="Enter USDT (TRC20) Address">
+                <input type="number" id="withdrawAmount" placeholder="Amount (Coins)">
+                <button class="btn-action" onclick="processWithdraw()">Withdraw Now</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('watch', this)">
+            <i class="fas fa-play-circle"></i>
+            Watch
+        </div>
+        <div class="nav-item" onclick="switchTab('invite', this)">
+            <i class="fas fa-user-plus"></i>
+            Invite
+        </div>
+        <div class="nav-item" onclick="switchTab('wallet', this)">
+            <i class="fas fa-wallet"></i>
+            Wallet
+        </div>
+    </nav>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const BOT_USERNAME = "topskytask_bot"; // Bot Username dinka
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQkS_O4H_PLAX_OPler4oOJdto40kgAdQ",
+            authDomain: "topskytask-52db7.firebaseapp.com",
+            projectId: "topskytask-52db7",
+            storageBucket: "topskytask-52db7.firebasestorage.app",
+            messagingSenderId: "310202865241",
+            appId: "1:310202865241:web:0b5110369b8344800dc348",
+            measurementId: "G-WNGBVT1E32"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        // Initialize Telegram
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Full Screen
+        tg.setHeaderColor('#1e3c72'); // Match theme
+
+        // Variables
+        let userId = "test_user_001"; // Default don gwaji
+        let userBalance = 0;
+
+        // --- 2. STARTUP LOGIC ---
+        window.onload = function() {
+            // Get User Data from Telegram
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                userId = tg.initDataUnsafe.user.id.toString();
+                document.getElementById('username').innerText = tg.initDataUnsafe.user.first_name;
+                
+                // Check Referral (start_param)
+                const referrerId = tg.initDataUnsafe.start_param;
+                if (referrerId && referrerId !== userId) {
+                    handleReferral(referrerId);
+                }
+            }
+
+            // Generate Invite Link
+            document.getElementById('inviteLink').innerText = `https://t.me/${BOT_USERNAME}?start=${userId}`;
+
+            // Sync Database
+            syncUserData();
+
+            // Load Monetag In-App Interstitial (Kamar yadda ka bukata a code)
+            try {
+                if (typeof show_10544727 === 'function') {
+                    show_10544727({
+                        type: 'inApp',
+                        inAppSettings: {
+                            frequency: 2,
+                            capping: 0.1,
+                            interval: 30,
+                            timeout: 5,
+                            everyPage: false
+                        }
+                    });
+                }
+            } catch(e) { console.log("Ad SDK not ready"); }
+        };
+
+        // --- 3. DATABASE FUNCTIONS ---
+        function syncUserData() {
+            const userRef = db.ref('users/' + userId);
+            userRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    userBalance = data.balance || 0;
+                    const referrals = data.referrals || 0;
+                    
+                    // Update UI
+                    document.getElementById('balance').innerText = userBalance;
+                    document.getElementById('wallet-bal').innerText = userBalance;
+                    document.getElementById('refCount').innerText = referrals;
+                    
+                    // Conversion Rate: 1000 Coins = 0.1 USDT (Example)
+                    document.getElementById('usdt-val').innerText = (userBalance / 10000).toFixed(4);
+                } else {
+                    // Create New User
+                    userRef.set({
+                        balance: 0,
+                        referrals: 0,
+                        username: document.getElementById('username').innerText
+                    });
+                }
+                document.getElementById('loading').style.display = 'none';
+            });
+        }
+
+        function handleReferral(refId) {
+            // Check if user already has a referrer
+            db.ref('users/' + userId + '/referredBy').once('value', (snap) => {
+                if (!snap.exists()) {
+                    // Set referrer
+                    db.ref('users/' + userId + '/referredBy').set(refId);
+                    
+                    // Give Reward to Referrer (100 Coins)
+                    const refUserRef = db.ref('users/' + refId);
+                    refUserRef.transaction((data) => {
+                        if (data) {
+                            data.balance = (data.balance || 0) + 100;
+                            data.referrals = (data.referrals || 0) + 1;
+                        }
+                        return data;
+                    });
+                }
+            });
+        }
+
+        // --- 4. AD LOGIC (MONETAG) ---
+        function playAd() {
+            // Button Animation
+            tg.HapticFeedback.impactOccurred('medium');
+
+            if (typeof show_10544727 !== 'function') {
+                tg.showAlert("Ad not ready yet. Please check connection.");
+                return;
+            }
+
+            // REWARDED INTERSTITIAL (Kamar yadda ka tura code din)
+            show_10544727().then(() => {
+                // Ad Watched Successfully!
+                rewardUser(200); // Give 200 Coins
+                tg.showAlert("Congrats! You received 200 Coins! 🎉");
+            }).catch(e => {
+                console.error(e);
+                tg.showAlert("Ad closed early or failed to load.");
+            });
+        }
+
+        function rewardUser(amount) {
+            db.ref('users/' + userId + '/balance').transaction((current) => {
+                return (current || 0) + amount;
+            });
+        }
+
+        // --- 5. UI FUNCTIONS ---
+        function switchTab(tabName, element) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
+            // Remove active class from nav
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            // Show selected
+            document.getElementById('tab-' + tabName).classList.add('active');
+            element.classList.add('active');
+            
+            // Haptic
+            tg.HapticFeedback.selectionChanged();
+        }
+
+        function copyInvite() {
+            const link = document.getElementById('inviteLink').innerText;
+            navigator.clipboard.writeText(link);
+            tg.showAlert("Link copied! Share it now.");
+        }
+
+        function processWithdraw() {
+            const amount = parseInt(document.getElementById('withdrawAmount').value);
+            if (!amount || amount < 5000) {
+                tg.showAlert("Minimum withdraw is 5,000 Coins.");
+                return;
+            }
+            if (amount > userBalance) {
+                tg.showAlert("Insufficient balance!");
+                return;
+            }
+            
+            // Deduct & Save Request
+            db.ref('users/' + userId + '/balance').transaction((b) => b - amount, (error, committed) => {
+                if (committed) {
+                    db.ref('withdrawals/' + userId).push({
+                        amount: amount,
+                        date: Date.now(),
+                        status: 'pending'
+                    });
+                    tg.showAlert("Withdrawal request sent successfully!");
+                    document.getElementById('withdrawAmount').value = "";
+                }
+            });
+        }
+
+    </script>
+</body>
+</html>
