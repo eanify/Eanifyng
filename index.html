@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SkyTask Ultimate V5</title>
+    
+    <!-- SDKs -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Assets -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- MONETAG SDK -->
+    <script src='//libtl.com/sdk.js' data-zone='10544727' data-sdk='show_10544727'></script>
+
+    <style>
+        :root {
+            --primary: #00f2ff; /* Cyan */
+            --secondary: #0078ff; /* Blue */
+            --accent: #ff0055; /* Red/Pink for Ads */
+            --bg: #050b14;
+            --card-bg: rgba(16, 28, 45, 0.85);
+            --border: 1px solid rgba(0, 242, 255, 0.2);
+            --text-main: #ffffff;
+            --text-mute: #8b9bb4;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at 50% -20%, #1a2a40, #000);
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            margin: 0; padding: 0; height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* --- 7. ADMIN POPUP (24H Message) --- */
+        #admin-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 9999;
+            display: none; align-items: center; justify-content: center;
+        }
+        .msg-box {
+            width: 80%; background: var(--card-bg); border: 1px solid var(--primary);
+            padding: 25px; border-radius: 20px; text-align: center;
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+            position: relative; animation: zoomIn 0.3s;
+        }
+        .close-msg {
+            margin-top: 15px; padding: 10px 30px;
+            background: transparent; border: 1px solid #fff; color: #fff;
+            border-radius: 20px; cursor: pointer;
+        }
+
+        /* --- 4. TUTORIAL OVERLAY --- */
+        .tutorial-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 5000;
+            display: none; pointer-events: none; /* Allow clicking through specifically */
+        }
+        .highlight-box {
+            position: absolute; border: 2px solid var(--primary);
+            box-shadow: 0 0 50px var(--primary);
+            border-radius: 15px; z-index: 5001;
+            transition: all 0.5s ease; pointer-events: none;
+        }
+        .tutorial-text {
+            position: absolute; color: white; background: #000;
+            padding: 10px 15px; border-radius: 10px; border: 1px solid var(--primary);
+            font-weight: bold; z-index: 5002; width: 200px; text-align: center;
+        }
+
+        /* --- HEADER --- */
+        header {
+            padding: 15px 20px; background: rgba(5, 11, 20, 0.9);
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: var(--border); z-index: 50;
+        }
+        .avatar-box img {
+            width: 45px; height: 45px; border-radius: 10px;
+            border: 2px solid var(--primary);
+        }
+        .lang-btn {
+            width: 35px; height: 35px; border: var(--border); border-radius: 8px;
+            display: flex; align-items: center; justify-content: center; color: var(--primary);
+        }
+
+        /* --- CONTENT --- */
+        #main-view { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; }
+
+        .pro-card {
+            background: var(--card-bg); border: var(--border);
+            border-radius: 16px; padding: 20px; margin-bottom: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        /* Balance */
+        .balance-val {
+            font-family: 'Orbitron'; font-size: 32px; color: #fff;
+            text-shadow: 0 0 10px var(--primary);
+        }
+
+        /* --- 3. HYPER AD BUTTON (Mai jan hankali) --- */
+        .hyper-btn {
+            width: 100%; padding: 20px; border: none; border-radius: 15px;
+            background: linear-gradient(90deg, #ff0055, #ff00aa, #ff0055);
+            background-size: 200% auto;
+            color: white; font-family: 'Orbitron'; font-size: 16px; letter-spacing: 1px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            cursor: pointer; position: relative; overflow: hidden;
+            animation: gradientMove 2s infinite linear;
+            box-shadow: 0 0 25px rgba(255, 0, 85, 0.4);
+            margin-top: 15px;
+        }
+        @keyframes gradientMove { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+        .hyper-btn::after {
+            content: ''; position: absolute; top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.4), transparent);
+            transform: rotate(45deg); animation: shimmer 3s infinite;
+        }
+        @keyframes shimmer { 0% { left: -100%; } 100% { left: 100%; } }
+
+        /* --- 2. WITHDRAWAL INPUTS --- */
+        .input-box {
+            width: 100%; padding: 15px; background: rgba(0,0,0,0.5);
+            border: 1px solid #333; color: white; border-radius: 10px;
+            margin-bottom: 10px; font-family: 'Rajdhani'; font-size: 16px;
+            box-sizing: border-box; text-align: center;
+        }
+        .input-box:focus { border-color: var(--primary); outline: none; }
+
+        /* --- 1. NAVIGATION WITH NAMES --- */
+        .nav-dock {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(8, 15, 25, 0.95); backdrop-filter: blur(10px);
+            border-top: var(--border); display: flex; justify-content: space-around;
+            padding: 10px 0; z-index: 100; padding-bottom: 20px; /* Safe area */
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            color: var(--text-mute); font-size: 10px; cursor: pointer;
+            transition: 0.3s; width: 33%;
+        }
+        .nav-item i { font-size: 20px; margin-bottom: 5px; }
+        .nav-item span { font-weight: 600; letter-spacing: 1px; }
+        .nav-item.active { color: var(--primary); text-shadow: 0 0 8px var(--primary); }
+        .nav-item.active i { transform: translateY(-2px); }
+
+        /* --- 5. & 6. FOOTER LINKS (Contact/Privacy) --- */
+        .footer-links {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;
+        }
+        .footer-btn {
+            background: rgba(255,255,255,0.05); padding: 10px;
+            text-align: center; border-radius: 8px; font-size: 12px;
+            color: #aaa; border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Helpers */
+        .hidden { display: none !important; }
+        .tab-view { display: none; animation: fadeIn 0.4s; }
+        .tab-view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    </style>
+</head>
+<body>
+
+    <!-- 7. ADMIN MESSAGE MODAL -->
+    <div id="admin-modal">
+        <div class="msg-box">
+            <i class="fas fa-bell" style="font-size: 40px; color: var(--primary); margin-bottom: 15px;"></i>
+            <h3 style="margin: 0; font-family: 'Orbitron';">SYSTEM UPDATE</h3>
+            <p style="font-size: 14px; color: #ccc; line-height: 1.5; margin: 15px 0;">
+                Welcome to SkyTask V5! <br>
+                Withdrawals are processed within 24 hours. <br>
+                Ensure you complete daily tasks.
+            </p>
+            <button class="close-msg" onclick="closeAdminMsg()">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- 4. TUTORIAL LAYERS -->
+    <div id="tutorial-overlay" class="tutorial-overlay">
+        <div id="tut-box" class="highlight-box"></div>
+        <div id="tut-text" class="tutorial-text"></div>
+    </div>
+
+    <!-- Language Modal -->
+    <div id="lang-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:200; display:none; align-items:center; justify-content:center;">
+        <div style="text-align:center;">
+            <h2 style="font-family:'Orbitron'; color:var(--primary);">SELECT LANGUAGE</h2>
+            <div onclick="setLang('en')" style="padding:15px; border:1px solid #333; margin:10px; border-radius:10px; color:#fff;">ENGLISH</div>
+            <div onclick="setLang('hi')" style="padding:15px; border:1px solid #333; margin:10px; border-radius:10px; color:#fff;">HINDI</div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div class="avatar-box">
+                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" id="user-avatar" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+            </div>
+            <div>
+                <div style="font-size: 10px; color: var(--primary);">OPERATOR</div>
+                <div id="user-name" style="font-weight: 700;">GUEST</div>
+            </div>
+        </div>
+        <div class="lang-btn" onclick="document.getElementById('lang-modal').style.display='flex'">
+            <i class="fas fa-globe"></i>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div id="main-view">
+        
+        <!-- HOME TAB -->
+        <div id="tab-home" class="tab-view active">
+            <!-- Balance (Tutorial Step 1) -->
+            <div class="pro-card" id="tut-balance" style="text-align:center;">
+                <div style="font-size:12px; color:var(--text-mute);">CURRENT BALANCE</div>
+                <div class="balance-val" id="balance-display">0</div>
+                <div style="color:var(--primary); font-size:12px;">≈ $<span id="usd-display">0.00</span></div>
+            </div>
+
+            <!-- Ads (Tutorial Step 2) -->
+            <div class="pro-card">
+                <h3 style="margin:0; font-family:'Orbitron';"><i class="fas fa-satellite-dish"></i> TASK STREAM</h3>
+                
+                <!-- 3. HYPER BUTTON -->
+                <button id="tut-ad-btn" class="hyper-btn" onclick="playAd()">
+                    <i class="fas fa-play"></i> INITIATE AD SEQUENCE
+                </button>
+            </div>
+        </div>
+
+        <!-- INVITE TAB -->
+        <div id="tab-invite" class="tab-view">
+            <div class="pro-card" style="text-align:center;">
+                <i class="fas fa-network-wired" style="font-size:40px; color:var(--secondary); margin-bottom:15px;"></i>
+                <h3>NETWORK EXPANSION</h3>
+                <input type="text" id="invite-link" class="input-box" readonly>
+                <button class="hyper-btn" style="background:var(--secondary);" onclick="copyInvite()">
+                    <i class="fas fa-copy"></i> COPY LINK
+                </button>
+            </div>
+        </div>
+
+        <!-- WALLET TAB -->
+        <div id="tab-wallet" class="tab-view">
+            <div class="pro-card">
+                <h3>WITHDRAWAL</h3>
+                
+                <!-- 2. AMOUNT INPUT -->
+                <label style="font-size:12px; color:#aaa;">Withdraw Amount (Credits)</label>
+                <input type="number" id="w-amount" class="input-box" placeholder="Min: 50,000">
+                
+                <label style="font-size:12px; color:#aaa;">USDT TRC20 Address</label>
+                <input type="text" id="w-addr" class="input-box" placeholder="T.....................">
+
+                <button class="hyper-btn" style="background:#00f2ff; color:#000;" onclick="withdraw()">
+                    <i class="fas fa-check"></i> REQUEST PAYOUT
+                </button>
+            </div>
+
+            <!-- 5. & 6. CONTACT & PRIVACY -->
+            <div class="pro-card">
+                <h4 style="margin-top:0;">SYSTEM INFO</h4>
+                <div class="footer-links">
+                    <div class="footer-btn" onclick="openLink('contact')"><i class="fas fa-headset"></i> Contact</div>
+                    <div class="footer-btn" onclick="openLink('terms')"><i class="fas fa-file-contract"></i> Terms</div>
+                    <div class="footer-btn" onclick="openLink('privacy')"><i class="fas fa-user-shield"></i> Privacy</div>
+                    <div class="footer-btn" onclick="openLink('about')"><i class="fas fa-info-circle"></i> About</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 1. NAVIGATION (With Names) -->
+    <nav class="nav-dock" id="tut-nav">
+        <div class="nav-item active" onclick="switchTab('home', this)">
+            <i class="fas fa-house-signal"></i>
+            <span>HOME</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('invite', this)">
+            <i class="fas fa-share-nodes"></i>
+            <span>INVITE</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('wallet', this)">
+            <i class="fas fa-wallet"></i>
+            <span>WALLET</span>
+        </div>
+    </nav>
+
+    <script>
+        // --- CONFIG ---
+        const BOT_USERNAME = "SkyTaskBot";
+        const ADMIN_MSG_ID = "msg_v5_001"; // Change this ID to show new message to everyone
+
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQkS_O4H_PLAX_OPler4oOJdto40kgAdQ",
+            authDomain: "topskytask-52db7.firebaseapp.com",
+            projectId: "topskytask-52db7",
+            storageBucket: "topskytask-52db7.firebasestorage.app",
+            messagingSenderId: "310202865241",
+            appId: "1:310202865241:web:0b5110369b8344800dc348"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.setHeaderColor('#050b14');
+
+        let userId = "guest";
+        let balance = 0;
+
+        // --- INIT ---
+        window.onload = function() {
+            if (tg.initDataUnsafe?.user) {
+                userId = tg.initDataUnsafe.user.id.toString();
+                document.getElementById('user-name').innerText = tg.initDataUnsafe.user.first_name.toUpperCase();
+                if(tg.initDataUnsafe.user.photo_url) document.getElementById('user-avatar').src = tg.initDataUnsafe.user.photo_url;
+            }
+            
+            document.getElementById('invite-link').value = `https://t.me/${BOT_USERNAME}?start=${userId}`;
+            initDB();
+            checkAdminMsg();
+            
+            // Start Tutorial if first time
+            if(!localStorage.getItem('tutorial_done')) {
+                setTimeout(startTutorial, 1000);
+            }
+        };
+
+        function initDB() {
+            db.ref('users/' + userId).on('value', snap => {
+                const data = snap.val();
+                if (data) {
+                    balance = data.balance || 0;
+                    document.getElementById('balance-display').innerText = balance.toLocaleString();
+                    document.getElementById('usd-display').innerText = ((balance/10000)*0.02).toFixed(4);
+                } else {
+                    db.ref('users/' + userId).set({ balance: 0, joined: Date.now() });
+                }
+            });
+        }
+
+        // --- 7. ADMIN MSG LOGIC ---
+        function checkAdminMsg() {
+            const lastId = localStorage.getItem('last_msg_id');
+            const lastTime = localStorage.getItem('last_msg_time');
+            const now = Date.now();
+
+            // Show if: ID is different (new msg) OR Time > 24h
+            if (lastId !== ADMIN_MSG_ID || (now - lastTime) > 86400000) {
+                document.getElementById('admin-modal').style.display = 'flex';
+            }
+        }
+
+        function closeAdminMsg() {
+            document.getElementById('admin-modal').style.display = 'none';
+            localStorage.setItem('last_msg_id', ADMIN_MSG_ID);
+            localStorage.setItem('last_msg_time', Date.now());
+        }
+
+        // --- 4. TUTORIAL LOGIC ---
+        function startTutorial() {
+            const overlay = document.getElementById('tutorial-overlay');
+            const box = document.getElementById('tut-box');
+            const text = document.getElementById('tut-text');
+            overlay.style.display = 'block';
+
+            // Step 1: Balance
+            const bal = document.getElementById('tut-balance').getBoundingClientRect();
+            highlight(box, text, bal, "Here is your Balance & Earnings.");
+
+            setTimeout(() => {
+                // Step 2: Ads
+                const btn = document.getElementById('tut-ad-btn').getBoundingClientRect();
+                highlight(box, text, btn, "Click here to Watch Ads & Earn!");
+            }, 3000);
+
+            setTimeout(() => {
+                // Step 3: Nav
+                const nav = document.getElementById('tut-nav').getBoundingClientRect();
+                highlight(box, text, nav, "Use this menu to Navigate.");
+            }, 6000);
+
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                localStorage.setItem('tutorial_done', 'true');
+            }, 9000);
+        }
+
+        function highlight(box, text, rect, msg) {
+            box.style.top = rect.top + 'px';
+            box.style.left = rect.left + 'px';
+            box.style.width = rect.width + 'px';
+            box.style.height = rect.height + 'px';
+            
+            text.innerText = msg;
+            text.style.top = (rect.top - 50) + 'px';
+            text.style.left = (rect.left + (rect.width/2) - 100) + 'px';
+        }
+
+        // --- CORE FUNCTIONS ---
+        function playAd() {
+            if (typeof show_10544727 === 'function') {
+                show_10544727().then(() => {
+                    db.ref('users/' + userId + '/balance').transaction(b => (b || 0) + 100);
+                    Swal.fire({icon:'success', title:'+100', background:'#050b14', color:'#fff', showConfirmButton:false, timer:1500});
+                });
+            } else {
+                Swal.fire({title:'Loading Ad...', timer:2000, didOpen:()=>Swal.showLoading(), background:'#050b14', color:'#fff'}).then(()=>{
+                     db.ref('users/' + userId + '/balance').transaction(b => (b || 0) + 100);
+                });
+            }
+        }
+
+        function withdraw() {
+            const amount = document.getElementById('w-amount').value;
+            const addr = document.getElementById('w-addr').value;
+
+            if(!amount || amount < 50000) return Swal.fire({icon:'error', title:'Min: 50,000 Credits', background:'#050b14', color:'#fff'});
+            if(addr.length < 10) return Swal.fire({icon:'error', title:'Invalid Address', background:'#050b14', color:'#fff'});
+            if(amount > balance) return Swal.fire({icon:'error', title:'Insufficient Balance', background:'#050b14', color:'#fff'});
+
+            Swal.fire({title:'Processing...', text:'Connecting Gateway', icon:'info', background:'#050b14', color:'#fff'});
+            // Add withdrawal logic to DB here
+        }
+
+        function openLink(type) {
+            let url = "";
+            if(type === 'contact') url = "https://t.me/SkyTaskSupport";
+            if(type === 'terms') url = "https://example.com/terms";
+            if(type === 'privacy') url = "https://example.com/privacy";
+            if(type === 'about') url = "https://t.me/SkyTaskInfo";
+            tg.openLink(url);
+        }
+
+        function switchTab(tab, el) {
+            document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            el.classList.add('active');
+        }
+
+        function copyInvite() {
+            const el = document.getElementById('invite-link');
+            el.select(); document.execCommand('copy');
+            Swal.fire({icon:'success', title:'Copied', toast:true, position:'bottom', background:'#050b14', color:'#fff', showConfirmButton:false, timer:1500});
+        }
+    </script>
+</body>
+</html>
